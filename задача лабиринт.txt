@@ -1,0 +1,149 @@
+/* Имеется лабиринт, представленный матрицей размером N* M, где 0 означает
+проходимая клетка, а 1 - непроходимая клетка.Найти выход из лабиринта,
+используя стратегию «держусь за стенку» (конечной клеткой может быть любая
+крайняя клетка матрицы).В решении использовать стек.*/
+
+	//в лабе использовался волновой алгоритм
+	//для восстановления кратчайшего пути удобно использовать стэк
+
+#include <iostream>
+#include <Windows.h>
+	using namespace std;
+
+struct Stack {
+	int x;
+	int y;
+	Stack* next;
+};
+
+const int WALL = 1;					//непроходимая ячейка
+const int BLANK = 0;				//проходимая ячейка
+const int N = 5, M = 10;
+int lab[N][M] = {
+{1,0,1,1,1,1,1,1,1,1},				//инициализация матрицы
+{1,0,0,0,1,0,0,0,0,1},
+{1,0,1,1,1,0,1,0,1,1},
+{1,0,0,0,0,0,1,0,1,1},
+{1,1,1,1,1,1,1,0,1,1} };
+Stack* top = NULL;
+
+void push(int a, int b) {
+	Stack* newEl = new Stack;
+	newEl->x = a;
+	newEl->y = b;
+	newEl->next = top;
+	top = newEl;
+}
+
+void show() {
+	Stack* currentEl = top;
+	while (currentEl)
+	{
+		cout << "(" << currentEl->x << ", " << currentEl->y << ")" << endl;
+		currentEl = currentEl->next;
+	}
+}
+
+bool path(int x_beg, int y_beg, int x_end, int y_end) {
+	int dx[4] = { 1, 0, -1, 0 };	//смещения к соседям:
+	int dy[4] = { 0, 1, 0, -1 };	//вправо, вниз, влево, вверх
+	int d = 2;						//стартовая точка отмечена 2, т.к. 0 и 1 заняты по условию
+	bool stop;
+
+	/*волна*/
+	int iy, ix;
+	lab[y_beg][x_beg] = d;
+	do {
+		stop = true;
+		for (int y = 0; y < N; y++)
+			for (int x = 0; x < M; x++)
+				if (lab[y][x] == d)
+					for (int k = 0; k < 4; k++)
+					{
+						iy = y + dy[k], ix = x + dx[k];
+						//проверяем, не вышли ли за границы + является ли точка проходимой:
+						if (iy >= 0 && iy < N && ix >= 0 && ix < M && lab[iy][ix] == BLANK)
+						{
+							stop = false;
+							lab[iy][ix] = d + 1;
+						}
+					}
+		d++;
+	} while (!stop && lab[y_end][x_end] == BLANK); //пока есть куда двигаться и не изменился последний элемент
+
+	/*смотрим что изменилось в исходной матрице*/
+	cout << "Волны: " << endl;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < M; j++)
+			cout << lab[i][j] << " \t";
+		cout << endl << endl;
+	}
+	cout << endl;
+
+	//если последний элемент достигнуть не удалось:
+	if (lab[y_end][x_end] == BLANK) return false;
+
+	/*восстанавливаем путь с помощью стэка*/
+	int x = x_end;
+	int y = y_end;
+	while (d >= 2)
+	{
+		push(x, y);
+		d--;
+		for (int k = 0; k < 4; ++k)
+		{
+			int iy = y + dy[k], ix = x + dx[k];
+			if (iy >= 0 && iy < N && ix >= 0 && ix < M && lab[iy][ix] == d)
+			{
+				x = ix;
+				y = iy;
+				break;
+			}
+		}
+	}
+	return true;
+}
+
+int main() {
+	SetConsoleOutputCP(1251);
+	/*вывод исходного лабиринта*/
+	cout << "Исходный лабиринт: " << endl;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < M; j++)
+			cout << lab[i][j] << " \t";
+		cout << endl << endl;
+	}
+	cout << endl;
+
+	/*ищем вход и выход*/
+	int x_beg = -1;
+	int y_beg = -1;
+	int x_end = -1;
+	int y_end = -1;
+	for (int i = 0; i < N; i++)
+		for (int j = 0; j < M; j++)
+			if (lab[i][j] == BLANK && ((i == N - 1) || (j == M - 1) || (i == 0) || (j == 0))) {
+				if (x_beg == -1)
+				{
+					x_beg = j;
+					y_beg = i;
+				}
+				else
+				{
+					x_end = j;
+					y_end = i;
+				}
+			}
+
+	if (x_beg != -1 && x_end != -1)
+	{
+		if (path(x_beg, y_beg, x_end, y_end))
+		{
+			cout << "Координаты пути по порядку: " << endl;
+			show();
+		}
+		else cout << "До выхода дойти невозможно!" << endl;
+	}
+	else cout << "Нет входа и/или выхода!" << endl;
+	return 0;
+}
